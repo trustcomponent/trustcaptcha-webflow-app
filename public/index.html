@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>TrustCaptcha</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --fg: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --accent: #111827;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 12px;
+            background: #fff;
+            color: var(--fg);
+            font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            max-height: calc(100vh - 16px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        h1 { margin: 0 0 12px; font-size: 18px; }
+        nav { display:flex; gap:8px; margin-bottom: 12px; flex-wrap: wrap; }
+        nav button {
+            padding:8px 12px; border:1px solid var(--border); background:#f8fafc; cursor:pointer;
+            border-radius:8px; font-weight:600;
+        }
+        nav button.active { background:#eef2ff; border-color:#c7d2fe; }
+
+        .fields { display:flex; flex-direction:column; gap:12px; }
+        .field  { display:flex; flex-direction:column; }
+        label   { font-weight:500; margin: 0 0 2px; }
+
+        input[type="text"],
+        input[type="url"],
+        textarea,
+        select,
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 8px 10px;
+            border:1px solid var(--border);
+            border-radius:8px;
+            background:#fff; color:var(--fg);
+        }
+        .btn {
+            background:var(--accent);
+            color:#fff;
+            border:0;
+            cursor:pointer;
+            font-weight:600;
+        }
+        textarea { resize: vertical; min-height: 72px; }
+        .muted { color: var(--muted); font-size:12px; }
+        .hidden { display:none; }
+    </style>
+</head>
+<body>
+<h1>TrustCaptcha</h1>
+
+<nav>
+    <button id="tab-insert" class="active">Insert</button>
+    <button id="tab-update">Update</button>
+</nav>
+
+<!-- INSERT / EDIT -->
+<section id="view-insert">
+    <form id="tc-form">
+        <div class="fields">
+
+            <div class="field">
+                <label for="sitekey">Sitekey</label>
+                <input id="sitekey" type="text" placeholder="your-site-key" required />
+            </div>
+
+            <div class="field">
+                <label for="license">License key (optional)</label>
+                <input id="license" type="text" placeholder="your-license-key" />
+            </div>
+
+            <div class="field">
+                <label for="language">Language</label>
+                <select id="language">
+                    <option value="auto">Auto (detect)</option>
+                    <option value="ar">Arabic (ar)</option>
+                    <option value="be">Belarusian (be)</option>
+                    <option value="bg">Bulgarian (bg)</option>
+                    <option value="bs">Bosnian (bs)</option>
+                    <option value="ca">Catalan (ca)</option>
+                    <option value="cs">Czech (cs)</option>
+                    <option value="da">Danish (da)</option>
+                    <option value="de">German (de)</option>
+                    <option value="el">Greek (el)</option>
+                    <option value="en">English (en)</option>
+                    <option value="es">Spanish (es)</option>
+                    <option value="et">Estonian (et)</option>
+                    <option value="fi">Finnish (fi)</option>
+                    <option value="fr">French (fr)</option>
+                    <option value="hi">Hindi (hi)</option>
+                    <option value="hr">Croatian (hr)</option>
+                    <option value="hu">Hungarian (hu)</option>
+                    <option value="it">Italian (it)</option>
+                    <option value="ko">Korean (ko)</option>
+                    <option value="lb">Luxembourgish (lb)</option>
+                    <option value="lt">Lithuanian (lt)</option>
+                    <option value="lv">Latvian (lv)</option>
+                    <option value="mk">Macedonian (mk)</option>
+                    <option value="nl">Dutch (nl)</option>
+                    <option value="no">Norwegian (no)</option>
+                    <option value="pl">Polish (pl)</option>
+                    <option value="pt">Portuguese (pt)</option>
+                    <option value="ro">Romanian (ro)</option>
+                    <option value="ru">Russian (ru)</option>
+                    <option value="sk">Slovak (sk)</option>
+                    <option value="sl">Slovenian (sl)</option>
+                    <option value="sq">Albanian (sq)</option>
+                    <option value="sr">Serbian (sr)</option>
+                    <option value="sv">Swedish (sv)</option>
+                    <option value="tr">Turkish (tr)</option>
+                    <option value="uk">Ukrainian (uk)</option>
+                    <option value="zh">Chinese (zh)</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="theme">Theme</label>
+                <select id="theme">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="media">Device (media)</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="width">Width</label>
+                <select id="width">
+                    <option value="fixed">Fixed</option>
+                    <option value="full">Full width</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="mode">Mode</label>
+                <select id="mode">
+                    <option value="standard">Standard</option>
+                    <option value="minimal">Minimal</option>
+                </select>
+            </div>
+
+            <!-- Booleans als Dropdowns -->
+            <div class="field">
+                <label for="autostart">Autostart</label>
+                <select id="autostart">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="hideBranding">Whitelabel / Hide branding</label>
+                <select id="hideBranding">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="invisible">Invisible</label>
+                <select id="invisible">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="invisibleHint">Invisible hint</label>
+                <select id="invisibleHint">
+                    <option value="right-border">Right border</option>
+                    <option value="inline">Inline</option>
+                    <option value="right-bottom">Bottom right</option>
+                    <option value="hidden">Hidden</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="privacyUrl">Privacy URL</label>
+                <input id="privacyUrl" type="url" placeholder="https://example.com/privacy" />
+            </div>
+
+            <div class="field">
+                <label for="bypassToken">Bypass token (tests)</label>
+                <input id="bypassToken" type="text" placeholder="optional" />
+            </div>
+
+            <div class="field">
+                <label for="tokenFieldName">Token field name</label>
+                <input id="tokenFieldName" type="text" placeholder="tc-verification-token" />
+            </div>
+
+            <div class="field">
+                <label for="customTranslations">Custom translations (JSON)</label>
+                <textarea id="customTranslations" placeholder='[{"language":"en","boxCompleted":"I am a happy human"}]'></textarea>
+            </div>
+
+            <div class="field">
+                <label for="customDesign">Custom design (JSON)</label>
+                <textarea id="customDesign" placeholder='{"theme":{"light":{"boxDefaultBackground":"#eab308"}}}'></textarea>
+            </div>
+
+            <div class="field">
+                <button id="primaryAction" class="btn" type="submit">Insert into selected form</button>
+                <p class="muted">Script & designer placeholder are ensured automatically.</p>
+            </div>
+
+        </div>
+    </form>
+</section>
+
+<!-- UPDATE -->
+<section id="view-update" class="hidden">
+    <div class="fields">
+        <div class="field">
+            <p class="muted">Select a <code>trustcaptcha-component</code> or a Form in the Navigator, then load its settings.</p>
+            <button id="loadSelected" class="btn" type="button">Load selected Captcha</button>
+        </div>
+    </div>
+</section>
+
+<script src="./bundle.js"></script>
+</body>
+</html>
