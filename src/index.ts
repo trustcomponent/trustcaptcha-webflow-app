@@ -1,8 +1,7 @@
 /* global webflow */
 type AnyEl = any;
 
-// Pin auf eine feste Version (kein 2.0.x Wildcard!)
-const UMD_SRC = "https://cdn.trustcomponent.com/trustcaptcha/2.0.1/trustcaptcha.umd.min.js";
+const UMD_SRC = "https://cdn.trustcomponent.com/trustcaptcha/3.0.1/trustcaptcha.umd.min.js";
 const PLACEHOLDER_STYLE_ID = "tc-designer-placeholder-css";
 
 /** --------------------------- helpers --------------------------- */
@@ -45,8 +44,8 @@ type Cfg = {
     license: string | null;
     language: string;
     theme: string;
-    width: string;
-    mode: string;
+    width: string;                  // stored: "fixed" | "full"
+    mode: string;                   // stored: "standard" | "minimal"
     autostart: boolean;
     hideBranding: boolean;
     invisible: boolean;
@@ -56,6 +55,7 @@ type Cfg = {
     tokenFieldName: string | null;
     customTranslations: string | null;
     customDesign: string | null;
+    failoverEnabled: boolean;
 };
 
 // If not null, we’re editing this instance (Update flow)
@@ -80,6 +80,7 @@ function readUI(): Cfg {
         autostart: read("autostart") === "true",
         hideBranding: read("hideBranding") === "true",
         invisible: read("invisible") === "true",
+        failoverEnabled: read("failoverEnabled") === "true",
 
         invisibleHint: read("invisibleHint"),
         privacyUrl: nonEmpty(read("privacyUrl")),
@@ -113,6 +114,7 @@ function writeUI(cfg: Partial<Cfg>) {
     setSelectValue("autostart", (cfg.autostart ?? true) ? "true" : "false");
     setSelectValue("hideBranding", (cfg.hideBranding ?? false) ? "true" : "false");
     setSelectValue("invisible", (cfg.invisible ?? false) ? "true" : "false");
+    setSelectValue("failoverEnabled", (cfg.failoverEnabled ?? false) ? "true" : "false");
 
     setSelectValue("invisibleHint", cfg.invisibleHint ?? "right-border");
     set("privacyUrl", cfg.privacyUrl ?? "");
@@ -219,15 +221,19 @@ async function findCaptchaNearSelection(): Promise<AnyEl | null> {
 }
 
 /** -------- attribute helpers ----------------------------------- */
-// autostart muss immer explizit stehen
-async function setAutostartAttr(el: AnyEl, val: boolean) {
-    await setAttr(el, "autostart", val ? "true" : "false");
+// v3: autostart inverted into autostart-disabled — present when autostart is OFF.
+async function setAutostartDisabledAttr(el: AnyEl, autostart: boolean) {
+    if (!autostart) await setAttr(el, "autostart-disabled", "true");
+    else await removeAttr(el, "autostart-disabled");
 }
-async function readAutostartAttr(el: AnyEl): Promise<boolean> {
-    const raw = (await getAttr(el, "autostart"));
-    if (raw == null) return true; // Default = true
-    const v = String(raw).trim().toLowerCase();
-    return v !== "false";
+async function readAutostartFromAttr(el: AnyEl): Promise<boolean> {
+    // v3: autostart-disabled is the inverted form. Absent → autostart on. Also tolerate legacy
+    // "autostart" attribute so customers can hand-edit values from older versions.
+    const disabled = await getAttr(el, "autostart-disabled");
+    if (disabled != null) return String(disabled).trim().toLowerCase() !== "true";
+    const legacy = await getAttr(el, "autostart");
+    if (legacy == null) return true;
+    return String(legacy).trim().toLowerCase() !== "false";
 }
 
 // Präsenz-Attribute: true → setzen ("true"), false → entfernen
@@ -240,20 +246,31 @@ async function setPresenceTrueRemoveFalse(el: AnyEl, name: string, val: boolean)
 async function applyCfgToElement(el: AnyEl, cfg: Cfg): Promise<void> {
     await setAttr(el, "sitekey", cfg.sitekey);
 
-    if (cfg.license) await setAttr(el, "license", cfg.license);
-    else await removeAttr(el, "license");
+    if (cfg.license) await setAttr(el, "license-key", cfg.license);
+    else await removeAttr(el, "license-key");
+    // Drop the legacy v2 attribute if it lingered from a previous insert.
+    await removeAttr(el, "license");
 
     await setAttr(el, "language", cfg.language);
     await setAttr(el, "theme", cfg.theme);
-    await setAttr(el, "width", cfg.width);
-    await setAttr(el, "mode", cfg.mode);
 
-    // explizit (immer)
-    await setAutostartAttr(el, cfg.autostart);
+    // v3 attribute renames: width → full-width (boolean), mode → minimal-data-mode (boolean)
+    await setPresenceTrueRemoveFalse(el, "full-width", cfg.width === "full");
+    await setPresenceTrueRemoveFalse(el, "minimal-data-mode", cfg.mode === "minimal");
+    // Drop legacy v2 attributes if present.
+    await removeAttr(el, "width");
+    await removeAttr(el, "mode");
 
-    // Präsenz
-    await setPresenceTrueRemoveFalse(el, "hide-branding", cfg.hideBranding);
+    // autostart logic inverted in v3
+    await setAutostartDisabledAttr(el, cfg.autostart);
+    await removeAttr(el, "autostart");
+
+    // hideBranding → white-label (renamed in v3)
+    await setPresenceTrueRemoveFalse(el, "white-label", cfg.hideBranding);
+    await removeAttr(el, "hide-branding");
+
     await setPresenceTrueRemoveFalse(el, "invisible", cfg.invisible);
+    await setPresenceTrueRemoveFalse(el, "failover-enabled", cfg.failoverEnabled);
 
     await setAttr(el, "invisible-hint", cfg.invisibleHint);
 
@@ -266,32 +283,45 @@ async function applyCfgToElement(el: AnyEl, cfg: Cfg): Promise<void> {
     if (cfg.tokenFieldName) await setAttr(el, "token-field-name", cfg.tokenFieldName);
     else await removeAttr(el, "token-field-name");
 
-    if (cfg.customTranslations) await setAttr(el, "custom-translations", cfg.customTranslations);
-    else await removeAttr(el, "custom-translations");
+    // customTranslations → translations, customDesign → design (v3 renames)
+    if (cfg.customTranslations) await setAttr(el, "translations", cfg.customTranslations);
+    else await removeAttr(el, "translations");
+    await removeAttr(el, "custom-translations");
 
-    if (cfg.customDesign) await setAttr(el, "custom-design", cfg.customDesign);
-    else await removeAttr(el, "custom-design");
+    if (cfg.customDesign) await setAttr(el, "design", cfg.customDesign);
+    else await removeAttr(el, "design");
+    await removeAttr(el, "custom-design");
 }
 
 async function readCfgFromElement(el: AnyEl): Promise<Cfg> {
+    // Read both v3 names and any leftover v2 names so editing an older instance still loads cleanly.
+    const fullWidth = await hasAttr(el, "full-width");
+    const widthLegacy = await getAttr(el, "width");
+    const width = fullWidth ? "full" : (widthLegacy === "full" ? "full" : "fixed");
+
+    const minimalDataMode = await hasAttr(el, "minimal-data-mode");
+    const modeLegacy = await getAttr(el, "mode");
+    const mode = minimalDataMode ? "minimal" : (modeLegacy === "minimal" ? "minimal" : "standard");
+
     return {
         sitekey: (await getAttr(el, "sitekey")) || "",
-        license: (await getAttr(el, "license")) || null,
+        license: (await getAttr(el, "license-key")) || (await getAttr(el, "license")) || null,
         language: (await getAttr(el, "language")) || "auto",
         theme: (await getAttr(el, "theme")) || "light",
-        width: (await getAttr(el, "width")) || "fixed",
-        mode: (await getAttr(el, "mode")) || "standard",
+        width,
+        mode,
 
-        autostart: await readAutostartAttr(el),
-        hideBranding: await hasAttr(el, "hide-branding"),
+        autostart: await readAutostartFromAttr(el),
+        hideBranding: (await hasAttr(el, "white-label")) || (await hasAttr(el, "hide-branding")),
         invisible: await hasAttr(el, "invisible"),
+        failoverEnabled: await hasAttr(el, "failover-enabled"),
 
         invisibleHint: (await getAttr(el, "invisible-hint")) || "right-border",
         privacyUrl: (await getAttr(el, "privacy-url")) || null,
         bypassToken: (await getAttr(el, "bypass-token")) || null,
         tokenFieldName: (await getAttr(el, "token-field-name")) || "tc-verification-token",
-        customTranslations: (await getAttr(el, "custom-translations")) || null,
-        customDesign: (await getAttr(el, "custom-design")) || null,
+        customTranslations: (await getAttr(el, "translations")) || (await getAttr(el, "custom-translations")) || null,
+        customDesign: (await getAttr(el, "design")) || (await getAttr(el, "custom-design")) || null,
     };
 }
 
@@ -400,7 +430,7 @@ function syncPrimaryButton() {
 /** ---------------- wire ------------------------- */
 function wireUI() {
     (async () => {
-        try { await webflow.setExtensionSize({ width: 720, height: 640 }); } catch { /* noop */ }
+        try { await webflow.setExtensionSize({ width: 720, height: 720 }); } catch { /* noop */ }
     })();
 
     // Insert-Tab: explizit Edit-Mode beenden
@@ -425,6 +455,7 @@ function wireUI() {
         autostart: true,
         hideBranding: false,
         invisible: false,
+        failoverEnabled: false,
         language: "auto",
         theme: "light",
         width: "fixed",

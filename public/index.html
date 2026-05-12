@@ -75,7 +75,7 @@
         <div class="fields">
 
             <div class="field">
-                <label for="sitekey">Sitekey</label>
+                <label for="sitekey">Site Key</label>
                 <input id="sitekey" type="text" placeholder="your-site-key" required />
             </div>
 
@@ -146,10 +146,10 @@
             </div>
 
             <div class="field">
-                <label for="mode">Mode</label>
+                <label for="mode">Minimal Data Mode</label>
                 <select id="mode">
-                    <option value="standard">Standard</option>
-                    <option value="minimal">Minimal</option>
+                    <option value="standard">Disabled</option>
+                    <option value="minimal">Enabled</option>
                 </select>
             </div>
 
@@ -163,7 +163,7 @@
             </div>
 
             <div class="field">
-                <label for="hideBranding">Whitelabel / Hide branding</label>
+                <label for="hideBranding">White Label / Hide Branding</label>
                 <select id="hideBranding">
                     <option value="false">Disabled</option>
                     <option value="true">Enabled</option>
@@ -211,6 +211,15 @@
             <div class="field">
                 <label for="customDesign">Custom design (JSON)</label>
                 <textarea id="customDesign" placeholder='{"theme":{"light":{"boxDefaultBackground":"#eab308"}}}'></textarea>
+            </div>
+
+            <div class="field">
+                <label for="failoverEnabled">Failover Enabled</label>
+                <select id="failoverEnabled">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+                <p class="muted">In the rare event of a TrustCaptcha outage, CAPTCHAs are accepted so your forms keep working — bot protection is skipped only while we're unreachable. Make sure your server can normally reach our API.</p>
             </div>
 
             <div class="field">

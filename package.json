@@ -1,6 +1,6 @@
 {
   "name": "trustcaptcha-webflow-plugin",
-  "version": "1.0.0",
+  "version": "3.0.1",
   "description": "Designer Extension to insert and configure TrustCaptcha in Webflow forms.",
   "author": "TrustCaptcha",
   "license": "Apache-2.0",
